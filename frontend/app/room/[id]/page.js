@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import ChatInput from '@/app/_components/ChatInput';
-import MessageList from '@/app/_components/MessageList';
-import HostControls from '@/app/_components/HostControls';
-import useWebSocket from '@/app/_utils/socket';
+import ChatInput from '../../_components/ChatInput';
+import MessageList from '../../_components/MessageList';
+import HostControls from '../../_components/HostControls';
+import useWebSocket from '../../_utils/socket';
 
 export default function RoomPage() {
     const params = useParams();

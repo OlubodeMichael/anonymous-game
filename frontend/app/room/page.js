@@ -1,15 +1,16 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { socket } from '@/utils/socket';
-import ChatInput from '@/components/ChatInput';
-import MessageList from '@/components/MessageList';
-import HostControls from '@/components/HostControls';
+import { socket, connectSocket, disconnectSocket } from '../../utils/socket';
+import ChatInput from '../../_components/ChatInput';
+import MessageList from '../../_components/MessageList';
+import HostControls from '../../_components/HostControls';
 
 export default function RoomPage() {
     const router = useRouter();
-    const { roomCode } = router.query;
+    const searchParams = useSearchParams();
+    const roomCode = searchParams.get('roomCode');
 
     const [userName, setUserName] = useState('');
     const [roomName, setRoomName] = useState('');
@@ -17,7 +18,20 @@ export default function RoomPage() {
     const [hasJoined, setHasJoined] = useState(false);
     const [showNameInput, setShowNameInput] = useState(false);
 
-    const { messages, users, randomMessage, sendMessage, error } = useWebSocket(process.env.NEXT_PUBLIC_WS_URL);
+    useEffect(() => {
+        const socketInstance = connectSocket();
+
+        socketInstance.on('message', handleMessage);
+        socketInstance.on('userJoined', handleUserJoined);
+
+        return () => {
+            disconnectSocket();
+        };
+    }, []);
+
+    const sendMessage = (event, data) => {
+        socket.emit(event, data);
+    };
 
     useEffect(() => {
         if (roomCode && userName && !hasJoined) {

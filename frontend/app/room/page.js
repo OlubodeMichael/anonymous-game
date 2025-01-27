@@ -1,13 +1,22 @@
 "use client";
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { socket, connectSocket, disconnectSocket } from '../_utils/socket';
+import { socket, connectSocket, disconnectSocket } from '../../utils/socket';
 import ChatInput from '../_components/ChatInput';
 import MessageList from '../_components/MessageList';
 import HostControls from '../_components/HostControls';
 
 export default function RoomPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <RoomContent />
+        </Suspense>
+    );
+}
+
+function RoomContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const roomCode = searchParams.get('roomCode');

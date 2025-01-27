@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { socket, connectSocket, disconnectSocket } from '../../_utils/socket';
+import { socket, connectSocket, disconnectSocket } from '../_utils/socket';
 import ChatInput from '../_components/ChatInput';
 import MessageList from '../_components/MessageList';
 import HostControls from '../_components/HostControls';

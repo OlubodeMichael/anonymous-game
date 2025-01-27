@@ -1,87 +1,131 @@
-# Project Name
+# Anonymous Game Chat
 
-Brief description of your project - what it does and what makes it special.
+A real-time anonymous chat application that enables users to communicate securely and privately in game-like chat rooms.
 
 ## Features
 
-- Feature 1
-- Feature 2
-- Feature 3
+- 🎭 Anonymous Communication
+- 🎮 Game-like Chat Interface
+- 🚀 Real-time Messaging
+- 🏠 Multiple Chat Rooms
+- 📱 Responsive Design
+- 🔐 Secure Communication
 
 ## Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [Other major technologies used]
+### Frontend
+
+- Next.js 14
+- React
+- Socket.io Client
+- TailwindCSS
+
+### Backend
+
+- Node.js
+- Express
+- Socket.io
+- MongoDB
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-
-- Node.js (version X.X.X or higher)
-- npm/yarn/pnpm
+- Node.js (v18 or higher)
+- npm or yarn
+- MongoDB (for message storage)
 
 ## Installation
 
 1. Clone the repository:
 
 ```bash
-git clone [your-repo-url]
+git clone https://github.com/OlubodeMichael/anonymous-game.git
 ```
 
-2. Navigate to the project directory:
+2. Install Frontend Dependencies:
 
 ```bash
-cd [project-directory]
-```
-
-3. Install dependencies:
-
-```bash
+cd frontend
 npm install
-# or
-yarn install
-# or
-pnpm install
 ```
 
-## Getting Started
-
-First, run the development server:
+3. Install Backend Dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+cd backend
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Setup
+
+1. Create `.env` file in backend directory:
+
+```env
+PORT=3001
+MONGODB_URI=your_mongodb_uri
+```
+
+2. Create `.env.local` file in frontend directory:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+## Running the Application
+
+1. Start the backend server:
+
+```bash
+cd backend
+npm run dev
+```
+
+2. Start the frontend development server:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Visit `http://localhost:3000` to view the application.
 
 ## Project Structure
 
 ```
-├── app/
-│   ├── components/
-│   ├── pages/
+├── frontend/
+│   ├── app/
+│   │   ├── page.js                 # Home page
+│   │   ├── room/                   # Chat rooms
+│   │   │   ├── page.js            # Room list
+│   │   │   └── [id]/              # Individual room
+│   │   └── _components/           # Shared components
 │   └── ...
-├── public/
-└── ...
+├── backend/
+│   ├── src/
+│   │   └── server.js              # Main server file
+│   └── ...
 ```
 
 ## Contributing
 
-[Instructions for contributors, if applicable]
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
 
-[Your chosen license]
+This project is licensed under the MIT License.
 
 ## Contact
 
-[Your contact information or ways to reach out]
+Michael Olubode - [GitHub](https://github.com/OlubodeMichael)
+
+Project Link: [https://github.com/OlubodeMichael/anonymous-game](https://github.com/OlubodeMichael/anonymous-game)
 
 ---
+
+Built with ❤️ using Next.js and Node.js
 
 ## Additional Documentation
 

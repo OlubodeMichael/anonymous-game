@@ -2,10 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import useWebSocket from '../../utils/socket';
-import ChatInput from '../../components/ChatInput';
-import MessageList from '../../components/MessageList';
-import HostControls from '../../components/HostControls';
+import { socket } from '@/utils/socket';
+import ChatInput from '@/components/ChatInput';
+import MessageList from '@/components/MessageList';
+import HostControls from '@/components/HostControls';
 
 export default function RoomPage() {
     const router = useRouter();

@@ -1,23 +1,14 @@
 'use client';
 
-export default function HostControls({ onKickUser, onBanUser }) {
+const HostControls = ({ isHost }) => {
+  if (!isHost) return null;
+
   return (
-    <div className="border-t p-4">
+    <div className="p-4 border-t">
       <h3 className="font-bold mb-2">Host Controls</h3>
-      <div className="flex gap-2">
-        <button
-          onClick={onKickUser}
-          className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-        >
-          Kick User
-        </button>
-        <button
-          onClick={onBanUser}
-          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          Ban User
-        </button>
-      </div>
+      {/* Add host control buttons/features here */}
     </div>
   );
-} 
+};
+
+export default HostControls; 

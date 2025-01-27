@@ -12,7 +12,6 @@ yarn-error.log*
 .env
 
 # OS-specific files
-.DS_Store
 Thumbs.db
 
 # Editor-specific files

@@ -1,108 +1,174 @@
-const express = require('express');
+const WebSocket = require('ws');
 const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+const { generateRoomCode, validateRoomCode } = require('./utils');
 
-// Initialize app and server
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: '*', // Allow all origins for testing
-    },
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
+
+// Store rooms and their data
+const rooms = new Map();
+
+// Store client information
+const clients = new Map();
+
+wss.on('connection', (ws) => {
+    console.log('New client connected');
+
+    ws.on('message', (data) => {
+        const message = JSON.parse(data);
+
+        switch (message.type) {
+            case 'createRoom': {
+                const { userName, roomName } = message.payload;
+                const roomCode = generateRoomCode();
+                
+                rooms.set(roomCode, {
+                    name: roomName,
+                    host: ws,
+                    messages: [],
+                    users: new Set([userName]),
+                    createdAt: Date.now()
+                });
+
+                clients.set(ws, { roomCode, userName, isHost: true });
+                
+                ws.send(JSON.stringify({
+                    type: 'roomCreated',
+                    payload: { roomCode, userName }
+                }));
+                break;
+            }
+
+            case 'joinRoom': {
+                const { roomCode, userName } = message.payload;
+                const room = rooms.get(roomCode);
+
+                if (!room) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        payload: { message: 'Room not found' }
+                    }));
+                    return;
+                }
+
+                room.users.add(userName);
+                clients.set(ws, { roomCode, userName, isHost: false });
+
+                // Notify all users in the room about the new user
+                broadcastToRoom(roomCode, {
+                    type: 'userJoined',
+                    payload: { userName, message: `${userName} has joined the room` }
+                });
+
+                // Send current room state to the new user
+                ws.send(JSON.stringify({
+                    type: 'roomJoined',
+                    payload: {
+                        roomCode,
+                        users: Array.from(room.users),
+                        messages: room.messages
+                    }
+                }));
+                break;
+            }
+
+            case 'sendMessage': {
+                const { message: messageText } = message.payload;
+                const client = clients.get(ws);
+                
+                if (!client) return;
+
+                const room = rooms.get(client.roomCode);
+                if (!room) return;
+
+                const newMessage = {
+                    id: Date.now(),
+                    userName: client.userName,
+                    message: messageText,
+                    timestamp: Date.now()
+                };
+
+                room.messages.push(newMessage);
+
+                broadcastToRoom(client.roomCode, {
+                    type: 'messageAdded',
+                    payload: { message: newMessage }
+                });
+                break;
+            }
+
+            case 'nextMessage': {
+                const client = clients.get(ws);
+                if (!client || !client.isHost) return;
+
+                const room = rooms.get(client.roomCode);
+                if (!room || room.messages.length === 0) return;
+
+                // Select random message and remove it from the queue
+                const randomIndex = Math.floor(Math.random() * room.messages.length);
+                const randomMessage = room.messages.splice(randomIndex, 1)[0];
+
+                broadcastToRoom(client.roomCode, {
+                    type: 'randomMessage',
+                    payload: { message: randomMessage }
+                });
+                break;
+            }
+        }
+    });
+
+    ws.on('close', () => {
+        const client = clients.get(ws);
+        if (!client) return;
+
+        const room = rooms.get(client.roomCode);
+        if (!room) return;
+
+        // Remove user from room
+        room.users.delete(client.userName);
+
+        // If host disconnects, close the room
+        if (client.isHost) {
+            broadcastToRoom(client.roomCode, {
+                type: 'roomClosed',
+                payload: { message: 'Host has disconnected' }
+            });
+            rooms.delete(client.roomCode);
+        } else {
+            // Notify others that user left
+            broadcastToRoom(client.roomCode, {
+                type: 'userLeft',
+                payload: { userName: client.userName }
+            });
+        }
+
+        clients.delete(ws);
+    });
 });
 
-// In-memory storage for rooms
-const rooms = {};
+function broadcastToRoom(roomCode, message) {
+    const room = rooms.get(roomCode);
+    if (!room) return;
 
-// Helper function to generate random pseudonyms
-function generatePseudonym() {
-    const adjectives = ['Brave', 'Clever', 'Silent', 'Mysterious', 'Swift'];
-    const nouns = ['Fox', 'Eagle', 'Wolf', 'Owl', 'Panther'];
-    return `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${nouns[Math.floor(Math.random() * nouns.length)]}`;
+    wss.clients.forEach(client => {
+        if (clients.get(client)?.roomCode === roomCode && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+        }
+    });
 }
 
-// Handle socket connections
-io.on('connection', (socket) => {
-    console.log(`Client connected: ${socket.id}`);
-
-    // Handle room join/create
-    socket.on('joinRoom', ({ roomId, isHost, limit }) => {
-        // Check if room exists or create a new one
-        if (!rooms[roomId]) {
-            if (!isHost) {
-                socket.emit('error', 'Room does not exist.');
-                return;
-            }
-            // Create room if host
-            rooms[roomId] = {
-                host: socket.id,
-                participants: [],
-                limit: limit || Infinity,
-                messages: [],
-            };
-            console.log(`Room created: ${roomId} by host: ${socket.id}`);
-        }
-
-        const room = rooms[roomId];
-
-        // Check if room is full
-        if (room.participants.length >= room.limit) {
-            socket.emit('error', 'Room is full.');
-            return;
-        }
-
-        // Assign pseudonym and join room
-        const pseudonym = generatePseudonym();
-        room.participants.push({ id: socket.id, pseudonym });
-        socket.join(roomId);
-
-        // Notify the client and update participants
-        socket.emit('roomJoined', { roomId, pseudonym });
-        io.to(roomId).emit('participantsUpdated', room.participants);
-
-        console.log(`Client ${socket.id} joined room: ${roomId}`);
-    });
-
-    // Handle message sending
-    socket.on('sendMessage', ({ roomId, message }) => {
-        const room = rooms[roomId];
-        if (room) {
-            room.messages.push({ id: socket.id, message });
-            console.log(`Message received in room ${roomId}: ${message}`);
+// Clean up empty rooms periodically
+setInterval(() => {
+    const now = Date.now();
+    rooms.forEach((room, roomCode) => {
+        if (room.users.size === 0 && now - room.createdAt > 3600000) { // 1 hour
+            rooms.delete(roomCode);
+            console.log(`Room ${roomCode} cleaned up due to inactivity`);
         }
     });
+}, 300000); // Check every 5 minutes
 
-    // Handle next message retrieval
-    socket.on('nextMessage', (roomId) => {
-        const room = rooms[roomId];
-        if (room && room.messages.length > 0) {
-            const randomIndex = Math.floor(Math.random() * room.messages.length);
-            const randomMessage = room.messages.splice(randomIndex, 1)[0];
-            io.to(roomId).emit('displayMessage', randomMessage);
-            console.log(`Random message sent in room ${roomId}: ${randomMessage.message}`);
-        }
-    });
-
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        console.log(`Client disconnected: ${socket.id}`);
-        Object.keys(rooms).forEach((roomId) => {
-            const room = rooms[roomId];
-            room.participants = room.participants.filter((p) => p.id !== socket.id);
-            if (room.host === socket.id) {
-                io.to(roomId).emit('roomClosed');
-                delete rooms[roomId];
-                console.log(`Room closed: ${roomId}`);
-            } else {
-                io.to(roomId).emit('participantsUpdated', room.participants);
-            }
-        });
-    });
-});
-
-// Start the server
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`WebSocket server is running on port ${PORT}`);
 });
